@@ -2,16 +2,16 @@ import asyncio
 import os
 import time
 
-from data import config
+from config import Config
 from pyrogram import Client
 from utils.core import logger, load_from_json, save_to_json
 
 
 class Accounts:
     def __init__(self):
-        self.workdir = config.WORKDIR
-        self.api_id = config.API_ID
-        self.api_hash = config.API_HASH
+        self.workdir = Config.WORKDIR
+        self.api_id = Config.API_ID
+        self.api_hash = Config.API_HASH
 
     @staticmethod
     def get_available_accounts(sessions: list):
@@ -43,17 +43,17 @@ class Accounts:
 
         valid_accounts = []
         for account in accounts:
-            session_name, phone_number, proxy = account.values()
             try:
                 proxy = {
-                    "scheme": config.PROXY_TYPE,
+                    "scheme": Config.PROXY_TYPE,
                     "hostname": proxy.split(":")[1].split("@")[1],
                     "port": int(proxy.split(":")[2]),
                     "username": proxy.split(":")[0],
                     "password": proxy.split(":")[1].split("@")[0]
-                } if proxy else None
+                } if account["proxy"] else None
 
-                client = Client(name=session_name, api_id=self.api_id, api_hash=self.api_hash, workdir=self.workdir, proxy=proxy)
+                client = Client(name=account["session_name"], api_id=self.api_id, api_hash=self.api_hash, 
+                                workdir=self.workdir, proxy=proxy)
 
                 if await client.connect():
                     await client.get_me()

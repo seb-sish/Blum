@@ -1,6 +1,6 @@
 import pyrogram
 from loguru import logger
-from data import config
+from config import Config
 from utils.core.file_manager import save_to_json
 import phonenumbers
 from langcodes import Language
@@ -22,7 +22,7 @@ async def create_sessions():
         proxy = input("Input the proxy in the format login:password@ip:port (press Enter to use without proxy): ")
         if proxy:
             client_proxy = {
-                "scheme": config.PROXY_TYPE,
+                "scheme": Config.PROXY_TYPE,
                 "hostname": proxy.split(":")[1].split("@")[1],
                 "port": int(proxy.split(":")[2]),
                 "username": proxy.split(":")[0],
@@ -35,20 +35,34 @@ async def create_sessions():
         phone_number = '+' + phone_number if not phone_number.startswith('+') else phone_number
 
         client = pyrogram.Client(
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
+            api_id=Config.API_ID,
+            api_hash=Config.API_HASH,
             name=session_name,
-            workdir=config.WORKDIR,
+            workdir=Config.WORKDIR,
             phone_number=phone_number,
-            proxy=client_proxy
+            proxy=client_proxy,
+            ipv6=Config.IPV6
         )
 
         async with client:
             me = await client.get_me()
 
+        play_game = ''
+        while play_game == '':
+            play_game = input("Play game on the account(Y/n): ")
+            if play_game.lower() in ['y', '']:
+                play_game = True
+                break
+            elif play_game.lower() == 'n':
+                play_game = False
+                break
+            else: 
+                print("Wrong answer, try again")
+
         save_to_json('sessions/accounts.json', dict_={
             "session_name": session_name,
             "phone_number": phone_number,
+            "play_game": play_game,
             "proxy": proxy
         })
         logger.success(f'Added a account {me.username} ({me.first_name}) | {me.phone_number}')

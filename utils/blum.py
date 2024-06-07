@@ -4,7 +4,7 @@ from pyrogram import Client
 from pyrogram.raw.functions.messages import RequestWebView
 import asyncio
 from urllib.parse import unquote
-from data import config
+from config import Config
 import aiohttp
 from fake_useragent import UserAgent
 from utils.core.register import lang_code_by_phone
@@ -29,14 +29,14 @@ def retry_async(max_retries=2):
 
 
 class BlumBot:
-    def __init__(self, thread: int, session_name: str, phone_number: str, proxy: [str, None]):
+    def __init__(self, thread: int, session_name: str, phone_number: str, proxy : str | None = None ):
         self.account = session_name + '.session'
         self.thread = thread
         self.proxy = f"http://{proxy}" if proxy is not None else None
-
+        
         if proxy:
             proxy = {
-                "scheme": config.PROXY_TYPE,
+                "scheme": Config.PROXY_TYPE,
                 "hostname": proxy.split(":")[1].split("@")[1],
                 "port": int(proxy.split(":")[2]),
                 "username": proxy.split(":")[0],
@@ -45,9 +45,9 @@ class BlumBot:
 
         self.client = Client(
             name=session_name,
-            api_id=config.API_ID,
-            api_hash=config.API_HASH,
-            workdir=config.WORKDIR,
+            api_id=Config.API_ID,
+            api_hash=Config.API_HASH,
+            workdir=Config.WORKDIR,
             proxy=proxy,
             lang_code=lang_code_by_phone(phone_number)
         )
@@ -73,7 +73,7 @@ class BlumBot:
         await self.session.close()
 
     async def stats(self):
-        await asyncio.sleep(random.uniform(*config.DELAYS['ACCOUNT']))
+        await asyncio.sleep(random.uniform(*Config.DELAYS['ACCOUNT']))
         await self.login()
 
         r = await (await self.session.get("https://game-domain.blum.codes/api/v1/user/balance", proxy=self.proxy)).json()
@@ -110,7 +110,7 @@ class BlumBot:
     @retry_async()
     async def tasks(self):
         for task in await self.get_tasks():
-            if task['status'] == 'CLAIMED' or task['title'] in config.BLACKLIST_TASKS: continue
+            if task['status'] == 'CLAIMED' or task['title'] in Config.BLACKLIST_TASKS: continue
 
             if task['status'] == "NOT_STARTED":
                 await self.start_complete_task(task)
@@ -138,12 +138,12 @@ class BlumBot:
         timestamp, start_time, end_time, play_passes = await self.balance()
 
         while play_passes:
-            await asyncio.sleep(random.uniform(*config.DELAYS['PLAY']))
+            await asyncio.sleep(random.uniform(*Config.DELAYS['PLAY']))
             game_id = await self.start_game()
 
             if not game_id:
                 logger.error(f"Thread {self.thread} | {self.account} | Couldn't start play in game!")
-                await asyncio.sleep(random.uniform(*config.DELAYS['ERROR_PLAY']))
+                await asyncio.sleep(random.uniform(*Config.DELAYS['ERROR_PLAY']))
                 play_passes -= 1
                 continue
 
@@ -155,7 +155,7 @@ class BlumBot:
                 logger.success(f"Thread {self.thread} | {self.account} | Finish play in game!; reward: {points}")
             else:
                 logger.error(f"Thread {self.thread} | {self.account} | Couldn't play game; msg: {msg}")
-                await asyncio.sleep(random.uniform(*config.DELAYS['ERROR_PLAY']))
+                await asyncio.sleep(random.uniform(*Config.DELAYS['ERROR_PLAY']))
 
             play_passes -= 1
 
@@ -170,7 +170,7 @@ class BlumBot:
         return (await resp.json()).get("gameId")
 
     async def claim_game(self, game_id: str):
-        points = random.randint(*config.POINTS)
+        points = random.randint(*Config.POINTS)
         json_data = {"gameId": game_id, "points": points}
 
         resp = await self.session.post("https://game-domain.blum.codes/api/v1/game/claim", json=json_data, proxy=self.proxy)

@@ -1,7 +1,7 @@
 from utils.blum import BlumBot
 from asyncio import sleep
 from random import uniform
-from data import config
+from config import Config
 from utils.core import logger
 import datetime
 import pandas as pd
@@ -10,11 +10,11 @@ import asyncio
 from aiohttp.client_exceptions import ContentTypeError
 
 
-async def start(thread: int, session_name: str, phone_number: str, proxy: [str, None]):
+async def start(thread: int, session_name: str, phone_number: str, proxy : str | None = None, play_game = False):
     blum = BlumBot(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
     account = session_name + '.session'
 
-    await sleep(uniform(*config.DELAYS['ACCOUNT']))
+    await sleep(uniform(*Config.DELAYS['ACCOUNT']))
     if await blum.login() is None:
         return
 
@@ -31,8 +31,9 @@ async def start(thread: int, session_name: str, phone_number: str, proxy: [str, 
             await blum.friend_claim()
             await sleep(uniform(2, 8))
 
-            await blum.play_game()
-            await sleep(uniform(5, 8))
+            if play_game:
+                await blum.play_game()
+                await sleep(uniform(5, 8))
 
             await blum.tasks()
             await sleep(uniform(5, 8))
@@ -65,8 +66,8 @@ async def stats():
 
     tasks = []
     for thread, account in enumerate(accounts):
-        session_name, phone_number, proxy = account.values()
-        tasks.append(asyncio.create_task(BlumBot(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy).stats()))
+        tasks.append(asyncio.create_task(BlumBot(session_name=account["session_name"], phone_number=account["phone_number"], 
+                                                 thread=thread, proxy=account["proxy"]).stats()))
 
     data = await asyncio.gather(*tasks)
 
