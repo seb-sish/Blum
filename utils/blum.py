@@ -6,6 +6,7 @@ import asyncio
 from urllib.parse import unquote
 from config import Config
 import aiohttp
+from aiohttp_socks import ProxyType, ProxyConnector
 from fake_useragent import UserAgent
 from utils.core.register import lang_code_by_phone
 
@@ -32,7 +33,7 @@ class BlumBot:
     def __init__(self, thread: int, session_name: str, phone_number: str, proxy : str | None = None ):
         self.account = session_name + '.session'
         self.thread = thread
-        self.proxy = f"http://{proxy}" if proxy is not None else None
+        self.proxy = f"{Config.PROXY_TYPE}://{proxy}" if proxy is not None else None
         
         if proxy:
             proxy = {
@@ -51,21 +52,29 @@ class BlumBot:
             proxy=proxy,
             lang_code=lang_code_by_phone(phone_number)
         )
-
+        
         headers = {'User-Agent': UserAgent(os='android').random}
-        self.session = aiohttp.ClientSession(headers=headers, trust_env=True, connector=aiohttp.TCPConnector(verify_ssl=False))
+        if proxy:
+            self.session = aiohttp.ClientSession(headers=headers, trust_env=True, connector=ProxyConnector.from_url(self.proxy, verify_ssl=False))
+        else:
+            self.session = aiohttp.ClientSession(headers=headers, trust_env=True, connector=aiohttp.TCPConnector(verify_ssl=False))
+
+    async def check_cur_ip_connection(self):
+        ip = (await (await self.session.get("https://api.ipify.org?format=json")).json())["ip"]
+        logger.info(f"Thread {self.thread} | {self.account} | Current connect ip: {ip}")
+        return ip
 
     async def need_new_login(self):
-        if (await self.session.get("https://gateway.blum.codes/v1/user/me", proxy=self.proxy)).status == 200:
+        if (await self.session.get("https://gateway.blum.codes/v1/user/me")).status == 200:
             return False
         else:
             return True
 
     @retry_async()
     async def friend_claim(self):
-        r = await (await self.session.get('https://gateway.blum.codes/v1/friends/balance', proxy=self.proxy)).json()
+        r = await (await self.session.get('https://gateway.blum.codes/v1/friends/balance')).json()
         if r.get('amountForClaim') is not None and float(r.get('amountForClaim')) and r.get('canClaim'):
-            resp = await self.session.post("https://gateway.blum.codes/v1/friends/claim", proxy=self.proxy)
+            resp = await self.session.post("https://gateway.blum.codes/v1/friends/claim")
             claim_balance = (await resp.json()).get("claimBalance")
             logger.success(f"Thread {self.thread} | {self.account} | Claim friends reward: {claim_balance}")
 
@@ -76,13 +85,13 @@ class BlumBot:
         await asyncio.sleep(random.uniform(*Config.DELAYS['ACCOUNT']))
         await self.login()
 
-        r = await (await self.session.get("https://game-domain.blum.codes/api/v1/user/balance", proxy=self.proxy)).json()
+        r = await (await self.session.get("https://game-domain.blum.codes/api/v1/user/balance")).json()
         points = r.get('availableBalance')
         plat_passes = r.get('playPasses')
 
         await asyncio.sleep(random.uniform(5, 7))
 
-        r = await (await self.session.get("https://gateway.blum.codes/v1/friends/balance", proxy=self.proxy)).json()
+        r = await (await self.session.get("https://gateway.blum.codes/v1/friends/balance")).json()
         limit_invites = r.get('limitInvitation')
         referral_token = r.get('referralToken')
         if referral_token is not None:
@@ -93,7 +102,7 @@ class BlumBot:
 
         await asyncio.sleep(random.uniform(5, 7))
 
-        r = await (await self.session.get("https://gateway.blum.codes/v1/friends", proxy=self.proxy)).json()
+        r = await (await self.session.get("https://gateway.blum.codes/v1/friends")).json()
         referrals = len(r.get('friends'))
 
         await self.logout()
@@ -124,14 +133,14 @@ class BlumBot:
                 logger.error(f"Thread {self.thread} | {self.account} | Failed complete task «{task['title']}»")
 
     async def claim_task(self, task: dict):
-        resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/claim', proxy=self.proxy)
+        resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/claim')
         return (await resp.json()).get('status') == "CLAIMED"
 
     async def start_complete_task(self, task: dict):
-        resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/start', proxy=self.proxy)
+        resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/start')
 
     async def get_tasks(self):
-        resp = await self.session.get('https://game-domain.blum.codes/api/v1/tasks', proxy=self.proxy)
+        resp = await self.session.get('https://game-domain.blum.codes/api/v1/tasks')
         return await resp.json()
 
     async def play_game(self):
@@ -161,34 +170,34 @@ class BlumBot:
 
     @retry_async()
     async def claim_daily_reward(self):
-        resp = await self.session.post("https://game-domain.blum.codes/api/v1/daily-reward?offset=-180", proxy=self.proxy)
+        resp = await self.session.post("https://game-domain.blum.codes/api/v1/daily-reward?offset=-180")
         if await resp.text() == 'OK':
             logger.success(f"Thread {self.thread} | {self.account} | Claimed daily reward!")
 
     async def start_game(self):
-        resp = await self.session.post("https://game-domain.blum.codes/api/v1/game/play", proxy=self.proxy)
+        resp = await self.session.post("https://game-domain.blum.codes/api/v1/game/play")
         return (await resp.json()).get("gameId")
 
     async def claim_game(self, game_id: str):
         points = random.randint(*Config.POINTS)
         json_data = {"gameId": game_id, "points": points}
 
-        resp = await self.session.post("https://game-domain.blum.codes/api/v1/game/claim", json=json_data, proxy=self.proxy)
+        resp = await self.session.post("https://game-domain.blum.codes/api/v1/game/claim", json=json_data)
         txt = await resp.text()
 
         return True if txt == 'OK' else txt, points
 
     async def claim(self):
-        resp = await self.session.post("https://game-domain.blum.codes/api/v1/farming/claim", proxy=self.proxy)
+        resp = await self.session.post("https://game-domain.blum.codes/api/v1/farming/claim")
         resp_json = await resp.json()
 
         return int(resp_json.get("timestamp")/1000), resp_json.get("availableBalance")
 
     async def start(self):
-        resp = await self.session.post("https://game-domain.blum.codes/api/v1/farming/start", proxy=self.proxy)
+        resp = await self.session.post("https://game-domain.blum.codes/api/v1/farming/start")
 
     async def balance(self):
-        resp = await self.session.get("https://game-domain.blum.codes/api/v1/user/balance", proxy=self.proxy)
+        resp = await self.session.get("https://game-domain.blum.codes/api/v1/user/balance")
         resp_json = await resp.json()
         await asyncio.sleep(1)
 
@@ -211,7 +220,7 @@ class BlumBot:
 
         json_data = {"query": query}
 
-        resp = await self.session.post("https://gateway.blum.codes/v1/auth/provider/PROVIDER_TELEGRAM_MINI_APP", json=json_data, proxy=self.proxy)
+        resp = await self.session.post("https://gateway.blum.codes/v1/auth/provider/PROVIDER_TELEGRAM_MINI_APP", json=json_data)
         resp_json = await resp.json()
 
         self.session.headers['Authorization'] = "Bearer " + resp_json.get("token").get("access")

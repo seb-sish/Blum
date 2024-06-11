@@ -12,6 +12,7 @@ from aiohttp.client_exceptions import ContentTypeError
 
 async def start(thread: int, session_name: str, phone_number: str, proxy : str | None = None, play_game = False):
     blum = BlumBot(session_name=session_name, phone_number=phone_number, thread=thread, proxy=proxy)
+    await blum.check_cur_ip_connection()
     account = session_name + '.session'
 
     await sleep(uniform(*Config.DELAYS['ACCOUNT']))

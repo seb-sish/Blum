@@ -46,10 +46,10 @@ class Accounts:
             try:
                 proxy = {
                     "scheme": Config.PROXY_TYPE,
-                    "hostname": proxy.split(":")[1].split("@")[1],
-                    "port": int(proxy.split(":")[2]),
-                    "username": proxy.split(":")[0],
-                    "password": proxy.split(":")[1].split("@")[0]
+                    "hostname": account["proxy"].split(":")[1].split("@")[1],
+                    "port": int(account["proxy"].split(":")[2]),
+                    "username": account["proxy"].split(":")[0],
+                    "password": account["proxy"].split(":")[1].split("@")[0]
                 } if account["proxy"] else None
 
                 client = Client(name=account["session_name"], api_id=self.api_id, api_hash=self.api_hash, 
