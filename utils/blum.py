@@ -121,9 +121,15 @@ class BlumBot:
         for task in await self.get_tasks():
             if task['status'] == "FINISHED" or task['title'] in Config.BLACKLIST_TASKS: continue
 
-            if task['status'] == "NOT_STARTED":
+            if task['status'] == "NOT_STARTED" and task['kind'] != "ONGOING":
                 await self.start_complete_task(task)
                 await asyncio.sleep(random.uniform(15, 20))
+
+            elif task['status'] == "NOT_STARTED" and task['kind'] == "ONGOING":
+                if task['progressTarget']['target'] != task['progressTarget']['target']:
+                    return
+                else: continue
+
             elif task['status'] == 'STARTED':
                 await asyncio.sleep(random.uniform(15, 20))
 
