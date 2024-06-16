@@ -22,7 +22,7 @@ class Config(object):
     IPV6 = False
 
     # title blacklist tasks (do not change)
-    BLACKLIST_TASKS = ['Farm points', "Invite 5 frens", "Subscribe to Blum Telegram"]
+    BLACKLIST_TASKS = ["Farm", "Invite", "Summer Quest"]
 
     # session folder (do not change)
     WORKDIR = "sessions/"

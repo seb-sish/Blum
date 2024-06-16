@@ -119,7 +119,7 @@ class BlumBot:
     @retry_async()
     async def tasks(self):
         for task in await self.get_tasks():
-            if task['status'] == 'CLAIMED' or task['title'] in Config.BLACKLIST_TASKS: continue
+            if task['status'] == "FINISHED" or task['title'] in Config.BLACKLIST_TASKS: continue
 
             if task['status'] == "NOT_STARTED":
                 await self.start_complete_task(task)
@@ -134,7 +134,7 @@ class BlumBot:
 
     async def claim_task(self, task: dict):
         resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/claim')
-        return (await resp.json()).get('status') == "CLAIMED"
+        return (await resp.json()).get('status') == "FINISHED"
 
     async def start_complete_task(self, task: dict):
         resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/start')
