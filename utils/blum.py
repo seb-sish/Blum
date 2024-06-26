@@ -152,7 +152,7 @@ class BlumBot:
     async def play_game(self):
         timestamp, start_time, end_time, play_passes = await self.balance()
 
-        while play_passes:
+        while play_passes and play_passes >= Config.MIN_TICKETS:
             await asyncio.sleep(random.uniform(*Config.DELAYS['PLAY']))
             game_id = await self.start_game()
 
@@ -163,7 +163,7 @@ class BlumBot:
                 continue
 
             logger.info(f"Thread {self.thread} | {self.account} | Start play in game! GameId: {game_id}")
-            await asyncio.sleep(37)
+            await asyncio.sleep(random.randint(32, 43))
 
             msg, points = await self.claim_game(game_id)
             if isinstance(msg, bool) and msg:

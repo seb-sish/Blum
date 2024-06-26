@@ -15,8 +15,8 @@ class Config(object):
     }
 
     # points with each play game; max 280
-    POINTS = [230, 270]
-
+    POINTS = [200, 270]
+    MIN_TICKETS = 75
     # proxy type
     PROXY_TYPE = "socks5"  # "socks4", "socks5" and "http" are supported
     IPV6 = False
