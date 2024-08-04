@@ -118,25 +118,26 @@ class BlumBot:
 
     @retry_async()
     async def tasks(self):
-        for task in await self.get_tasks():
-            if task['status'] == "FINISHED" or task['title'] in Config.BLACKLIST_TASKS: continue
+        for section in await self.get_sections():
+            for task in section["tasks"]:
+                if task['status'] == "FINISHED" or task['title'] in Config.BLACKLIST_TASKS: continue
 
-            if task['status'] == "NOT_STARTED" and task['kind'] != "ONGOING":
-                await self.start_complete_task(task)
-                await asyncio.sleep(random.uniform(15, 20))
+                if task['status'] == "NOT_STARTED" and task['kind'] != "ONGOING":
+                    await self.start_complete_task(task)
+                    await asyncio.sleep(random.uniform(15, 20))
 
-            elif task['status'] == "NOT_STARTED" and task['kind'] == "ONGOING":
-                if task['progressTarget']['target'] != task['progressTarget']['target']:
-                    return
-                else: continue
+                elif task['status'] == "NOT_STARTED" and task['kind'] == "ONGOING":
+                    if task['progressTarget']['target'] != task['progressTarget']['target']:
+                        return
+                    else: continue
 
-            elif task['status'] == 'STARTED':
-                await asyncio.sleep(random.uniform(15, 20))
+                elif task['status'] == 'STARTED':
+                    await asyncio.sleep(random.uniform(15, 20))
 
-            if await self.claim_task(task):
-                logger.success(f"Thread {self.thread} | {self.account} | Completed task «{task['title']}»")
-            else:
-                logger.error(f"Thread {self.thread} | {self.account} | Failed complete task «{task['title']}»")
+                if await self.claim_task(task):
+                    logger.success(f"Thread {self.thread} | {self.account} | Completed task «{task['title']}»")
+                else:
+                    logger.error(f"Thread {self.thread} | {self.account} | Failed complete task «{task['title']}»")
 
     async def claim_task(self, task: dict):
         resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/claim')
@@ -145,7 +146,7 @@ class BlumBot:
     async def start_complete_task(self, task: dict):
         resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/start')
 
-    async def get_tasks(self):
+    async def get_sections(self):
         resp = await self.session.get('https://game-domain.blum.codes/api/v1/tasks')
         return await resp.json()
 
