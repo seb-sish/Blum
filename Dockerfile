@@ -1,5 +1,5 @@
-FROM python:3.12.2
+FROM python:3.12.5
 WORKDIR /root/app
 COPY . .
 RUN pip install -r requirements.txt
-CMD ["python", "/root/app/main.py", "1"]
+ENTRYPOINT ["python", "/root/app/main.py", "1"]
