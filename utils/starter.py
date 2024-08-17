@@ -51,7 +51,7 @@ async def start(thread: int, session_name: str, phone_number: str, proxy : str |
 
             else:
                 logger.info(f"Thread {thread} | {account} | Sleep {end_time - timestamp} seconds!")
-                await sleep(end_time - timestamp)
+                await sleep(end_time - timestamp + uniform(*Config.DELAYS['CLAIM']))
 
             await sleep(30)
         except ContentTypeError as e:
