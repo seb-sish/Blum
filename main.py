@@ -2,11 +2,12 @@ from utils.core import create_sessions
 from utils.telegram import Accounts
 from utils.starter import start, stats
 import asyncio
+import sys
 import os
 
 
 async def main():
-    action = int(input("Select action:\n1. Start soft\n2. Get statistics\n3. Create sessions\n\n> "))
+    action = get_action()
 
     if not os.path.exists('sessions'): os.mkdir('sessions')
     if not os.path.exists('statistics'): os.mkdir('statistics')
@@ -26,6 +27,14 @@ async def main():
 
             await asyncio.gather(*tasks)
 
+def get_action():
+    if len(sys.argv) == 2: action = sys.argv[1]
+    else: action = input("Select action:\n1. Start soft\n2. Get statistics\n3. Create sessions\n\n> ")
+    
+    if action in ["1", "2", "3"]: return int(action)
+    else: 
+        print("Wrong value! Try again...\n")
+        return get_action()
 
 if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.run(main())
