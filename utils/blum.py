@@ -65,16 +65,16 @@ class BlumBot:
         return ip
 
     async def need_new_login(self):
-        if (await self.session.get("https://gateway.blum.codes/v1/user/me")).status == 200:
+        if (await self.session.get("https://user-domain.blum.codes/api/v1/user/me")).status == 200:
             return False
         else:
             return True
 
     @retry_async()
     async def friend_claim(self):
-        r = await (await self.session.get('https://gateway.blum.codes/v1/friends/balance')).json()
+        r = await (await self.session.get('https://user-domain.blum.codes/api/v1/friends/balance')).json()
         if r.get('amountForClaim') is not None and float(r.get('amountForClaim')) and r.get('canClaim'):
-            resp = await self.session.post("https://gateway.blum.codes/v1/friends/claim")
+            resp = await self.session.post("https://user-domain.blum.codes/api/v1/friends/claim")
             claim_balance = (await resp.json()).get("claimBalance")
             logger.success(f"Thread {self.thread} | {self.account} | Claim friends reward: {claim_balance}")
 
@@ -91,7 +91,7 @@ class BlumBot:
 
         await asyncio.sleep(random.uniform(5, 7))
 
-        r = await (await self.session.get("https://gateway.blum.codes/v1/friends/balance")).json()
+        r = await (await self.session.get("https://user-domain.blum.codes/api/v1/friends/balance")).json()
         limit_invites = r.get('limitInvitation')
         referral_token = r.get('referralToken')
         if referral_token is not None:
@@ -102,7 +102,7 @@ class BlumBot:
 
         await asyncio.sleep(random.uniform(5, 7))
 
-        r = await (await self.session.get("https://gateway.blum.codes/v1/friends")).json()
+        r = await (await self.session.get("https://user-domain.blum.codes/api/v1/friends")).json()
         referrals = len(r.get('friends'))
 
         await self.logout()
@@ -227,7 +227,7 @@ class BlumBot:
 
         json_data = {"query": query}
 
-        resp = await self.session.post("https://gateway.blum.codes/v1/auth/provider/PROVIDER_TELEGRAM_MINI_APP", json=json_data)
+        resp = await self.session.post("https://user-domain.blum.codes/api/v1/auth/provider/PROVIDER_TELEGRAM_MINI_APP", json=json_data)
         resp_json = await resp.json()
 
         self.session.headers['Authorization'] = "Bearer " + resp_json.get("token").get("access")
