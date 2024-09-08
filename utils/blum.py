@@ -1,5 +1,5 @@
 import random
-from utils.core import logger
+from utils.core.logger import logger
 from pyrogram import Client
 from pyrogram.raw.functions.messages import RequestWebView
 import asyncio
