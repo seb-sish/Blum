@@ -140,14 +140,14 @@ class BlumBot:
                     logger.error(f"Thread {self.thread} | {self.account} | Failed complete task «{task['title']}»")
 
     async def claim_task(self, task: dict):
-        resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/claim')
+        resp = await self.session.post(f'https://earn-domain.blum.codes/api/v1/tasks/{task["id"]}/claim')
         return (await resp.json()).get('status') == "FINISHED"
 
     async def start_complete_task(self, task: dict):
-        resp = await self.session.post(f'https://game-domain.blum.codes/api/v1/tasks/{task["id"]}/start')
+        resp = await self.session.post(f'https://earn-domain.blum.codes/api/v1/tasks/{task["id"]}/start')
 
     async def get_sections(self):
-        resp = await self.session.get('https://game-domain.blum.codes/api/v1/tasks')
+        resp = await self.session.get('https://earn-domain.blum.codes/api/v1/tasks')
         return await resp.json()
 
     async def play_game(self):
