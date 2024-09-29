@@ -119,7 +119,18 @@ class BlumBot:
     @retry_async()
     async def tasks(self):
         for section in await self.get_sections():
-            for task in section["tasks"]:
+            match section["sectionType"]:
+                case 'HIGHLIGHTS':
+                   tasks_list = section["tasks"]
+                case 'WEEKLY_ROUTINE':
+                    tasks_list = section["tasks"][0]["subTasks"]
+                case 'DEFAULT':
+                    tasks_list = [j for i in section["subSections"] for j in i['tasks']]
+                case _:
+                    tasks_list = section["tasks"]
+
+
+            for task in tasks_list:
                 if task['status'] == "FINISHED" or task['title'] in Config.BLACKLIST_TASKS: continue
 
                 if task['status'] == "NOT_STARTED" and task['kind'] != "ONGOING":
