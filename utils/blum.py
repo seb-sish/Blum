@@ -1,3 +1,4 @@
+import json
 import random
 from utils.core.logger import logger
 from pyrogram import Client
@@ -34,7 +35,8 @@ class BlumBot:
         self.account = session_name + '.session'
         self.thread = thread
         self.proxy = f"{Config.PROXY_TYPE}://{proxy}" if proxy is not None else None
-        
+        self.answers = self.get_answers()
+
         if proxy:
             proxy = {
                 "scheme": Config.PROXY_TYPE,
@@ -123,12 +125,16 @@ class BlumBot:
                 case 'HIGHLIGHTS':
                    tasks_list = section["tasks"]
                 case 'WEEKLY_ROUTINE':
-                    tasks_list = section["tasks"][0]["subTasks"]
+                    tasks_list = []
+                    for i in range(len(section["tasks"])):
+                        if section["tasks"][i].get("type", "") != "GROUP":
+                            tasks_list.append(section["tasks"][i])
+                        else: tasks_list += section["tasks"][i]["subTasks"]
+                
                 case 'DEFAULT':
                     tasks_list = [j for i in section["subSections"] for j in i['tasks']]
                 case _:
                     tasks_list = section["tasks"]
-
 
             for task in tasks_list:
                 if task['status'] == "FINISHED" or task['title'] in Config.BLACKLIST_TASKS: continue
@@ -136,6 +142,11 @@ class BlumBot:
                 if task['status'] == "NOT_STARTED" and task['kind'] != "ONGOING":
                     await self.start_complete_task(task)
                     await asyncio.sleep(random.uniform(15, 20))
+
+                if task['status'] == "READY_FOR_VERIFY" and task['kind'] != "ONGOING" and \
+                    self.answers.get(task['title'].lower(), None) != None:
+                        await self.validate_task(task, self.answers.get(task['title'].lower()))
+                        await asyncio.sleep(random.uniform(15, 20))
 
                 elif task['status'] == "NOT_STARTED" and task['kind'] == "ONGOING":
                     if task['progressTarget']['target'] != task['progressTarget']['target']:
@@ -150,6 +161,15 @@ class BlumBot:
                 else:
                     logger.error(f"Thread {self.thread} | {self.account} | Failed complete task «{task['title']}»")
 
+    def get_answers(self, path: str = "answers.json") -> dict:
+        with open(path, 'r') as file:
+            return json.load(file)
+
+    async def validate_task(self, task: dict, keyword: str):
+        resp = await self.session.post(f'https://earn-domain.blum.codes/api/v1/tasks/{task["id"]}/validate', 
+                                       json={"keyword": keyword})
+        return (await resp.json()).get('status') == "READY_FOR_CLAIM"
+    
     async def claim_task(self, task: dict):
         resp = await self.session.post(f'https://earn-domain.blum.codes/api/v1/tasks/{task["id"]}/claim')
         return (await resp.json()).get('status') == "FINISHED"
